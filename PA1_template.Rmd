@@ -1,0 +1,154 @@
+---
+title: "Reproducible Research - Assignment 1"
+author: "Otavio Cals"
+date: "November 13, 2015"
+output: html_document
+---
+
+# Reproducible Research - Assignment 1
+## Otavio Cals
+### November 13, 2015
+
+  
+This is an R Markdown report for the first assignment of the Reproducible Research course. Here we will load a given database (activity.csv) and we will peform a simple data analysis on it. Each step of the analysis will be done in the order required by the assignment and explicitly shown.
+
+# Part 1: Loading the Data
+
+Here we will load the dataset and print it's top row. No data processing of the raw data has been deemed necessary.
+
+
+```{r}
+data <- read.csv("./activity.csv")
+head(data,10)
+```
+
+
+
+# Part 2: Data Analysis by Day (NAs ignored)
+
+In this part, we will perform a basic analysis of the variable "steps" recorded in the data by each day. Missing values (NAs) will be ignored.
+
+We begin by calculating the total number of steps taken per day:
+
+```{r}
+sumstepsdate<-tapply(data$steps,data$date,sum,na.rm=TRUE)
+print(sumstepsdate)
+```
+
+Now, we take the total number of steps taken per day data (sumstepsdate) and make a histogram out of it:
+
+```{r}
+hist(sumstepsdate,ylim=c(0,30),main="Histogram of Steps Taken in a Day",xlab="Total Number os Steps Taken in a Day")
+```
+
+Now, we calculate the mean and median of the total number of steps taken per day.
+
+```{r}
+meanstepsdate<-tapply(data$steps,data$date,mean,na.rm=TRUE)
+medianstepsdate<-tapply(data$steps,data$date,median,na.rm=TRUE)
+print(meanstepsdate)
+print(medianstepsdate)
+```
+
+
+# Part 3: Data Analysis by Time Interval (NAs ignored)
+
+In this part, we will perform a basic analysis of the variable "steps" recorded in the data by each time interval of 5 minutes. Missing values (NAs) will be ignored.
+
+we begin by making a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis):
+
+```{r}
+meanstepstime<-tapply(data$steps,data$interval,mean,na.rm=TRUE)
+plot(names(meanstepstime),meanstepstime,main="Average Steps Taken",xlab="Time Interval",ylab="Average Steps",type = "l")
+```
+
+Now we calculate the period of time which,  on average across all the days in the dataset, contains the maximum number of steps:
+
+```{r}
+sumstepstime<-tapply(data$steps,data$interval,sum,na.rm=TRUE)
+print(as.integer(names(sumstepstime[match(max(as.vector(sumstepstime)),as.vector(sumstepstime))])))
+```
+
+# Part 4: Inputing Missing Values
+
+In this part, we will input specific values on the Missing Values (NAs) in the dataset.
+
+We begin by counting the total number of NAs in the data:
+
+```{r}
+print(sum(is.na(data$steps)))
+```
+
+For this analysis, we decided that it would be more accurate to fill the missing data fields with the mean steps value of it`s corresponding time interval.
+We begin by creating a copy of the data set and then input the missing values on it:
+
+```{r}
+data2<-data
+for(i in 1:nrow(data2))
+	{
+		if(is.na(data2$steps[i]))
+			{
+				data2$steps[i]<-as.table(meanstepstime[toString(data2$interval[i])])
+			}
+}
+head(data2,10)
+```
+
+We can verify that there is no longer any NAs in this new data by running the same code from before:
+
+```{r}
+print(sum(is.na(data2$steps)))
+```
+
+Now, we make a histogram of the total number of steps taken each day:
+
+```{r}
+sumstepsdate2<-tapply(data2$steps,data2$date,sum)
+hist(sumstepsdate2,ylim=c(0,40),main="Histogram of Steps Taken in a Day",xlab="Total Number os Steps Taken in a Day")
+```
+
+Then we calculate the mean and median total number of steps taken per day:
+
+```{r}
+meanstepsdate2<-tapply(data2$steps,data2$date,mean)
+medianstepsdate2<-tapply(data2$steps,data2$date,median)
+print(meanstepsdate2)
+print(medianstepsdate2)
+```
+
+We can thus verify that inputing data in the missing values made a impact in the new analysis performed.
+
+# Part 5: Weekday/Weekend Steps Analysis
+
+In this final part, we want to verify the differences in activity patterns between weekdays and weekends.
+
+We will begin by creating a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day:
+
+```{r}
+weekdayslist<-weekdays(as.Date(data2$date),abbreviate=TRUE)
+for(i in 1:length(weekdayslist))
+	{
+		if(weekdayslist[i] %in% c("Sun","Sat"))
+			{
+				weekdayslist[i]<-"weekend"
+			}
+		else
+			{
+				weekdayslist[i]<-"weekday"
+			}
+	}
+data2<-cbind(data2,weekdayslist)
+colnames(data2)[4]<-"weekdays"
+head(data2,10)
+```
+
+Finally, we make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis):
+
+```{r}
+meanstepstime2<-tapply(data2$steps,list(data2$interval,data2$weekdays),mean)
+par(mfrow=c(1,2))
+plot(as.integer(row.names(meanstepstime2)),meanstepstime2[,1],ylim = c(0,250),main="Average Steps on Weekdays",xlab="Time Interval",ylab="Average Steps",type = "l")
+plot(as.integer(row.names(meanstepstime2)),meanstepstime2[,2],ylim = c(0,250),main="Average Steps on Weekends",xlab="Time Interval",ylab="Average Steps",type = "l")
+```
+
+We conclude then that the subject is more active during the weekends.
